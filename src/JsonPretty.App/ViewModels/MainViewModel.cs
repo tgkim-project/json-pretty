@@ -1,4 +1,6 @@
+using System.IO;
 using System.Text;
+using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -22,15 +24,108 @@ public partial class MainViewModel : ObservableObject
     private string _input = string.Empty;
     private int _version;
 
-    public MainViewModel()
+    public MainViewModel() : this(new AppSettings()) { }
+
+    public MainViewModel(AppSettings settings)
     {
         _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         _debounce.Tick += (_, _) => ReformatNow();
 
-        _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1500) };
+        _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2000) };
         _toastTimer.Tick += (_, _) => { _toastTimer.Stop(); ToastText = string.Empty; };
 
-        selectedIndent = IndentChoices[0];
+        // 필드에 직접 넣어 변경 콜백(재정렬)이 돌지 않게 한다.
+        selectedIndent = IndentChoices.FirstOrDefault(c => settings.UseTabs ? c.UseTabs : !c.UseTabs && c.Size == settings.IndentSize)
+                         ?? IndentChoices[0];
+        sortKeys = settings.SortKeys;
+        _lastDirectory = settings.LastDirectory;
+    }
+
+    /// <summary>현재 옵션을 설정 객체에 기록 (종료 시 저장용).</summary>
+    public void WriteTo(AppSettings settings)
+    {
+        settings.IndentSize = SelectedIndent.UseTabs ? 2 : SelectedIndent.Size;
+        settings.UseTabs = SelectedIndent.UseTabs;
+        settings.SortKeys = SortKeys;
+        settings.LastDirectory = _lastDirectory;
+    }
+
+    private string? _lastDirectory;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WindowTitle))]
+    private string? currentFilePath;
+
+    public string WindowTitle => CurrentFilePath is null
+        ? "JSON Pretty"
+        : $"{Path.GetFileName(CurrentFilePath)} - JSON Pretty";
+
+    [RelayCommand]
+    private void OpenFile()
+    {
+        var path = FileService.PickOpenPath(_lastDirectory);
+        if (path is not null)
+            LoadFile(path);
+    }
+
+    /// <summary>파일을 읽어 입력 창에 넣는다. 열기 대화상자와 드래그앤드롭에서 사용.</summary>
+    public void LoadFile(string path)
+    {
+        string text;
+        try
+        {
+            text = FileService.ReadText(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            MessageBox.Show($"파일을 열 수 없습니다.\n\n{path}\n\n{ex.Message}", "JSON Pretty",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        InputReplaceRequested?.Invoke(this, text);
+        _input = text;
+        CurrentFilePath = path;
+        _lastDirectory = Path.GetDirectoryName(path);
+        ReformatNow();
+        ShowToast($"{Path.GetFileName(path)} 을(를) 열었습니다.");
+    }
+
+    [RelayCommand]
+    private void SaveFile()
+    {
+        if (_debounce.IsEnabled)
+            ReformatSync();
+
+        if (LastError is not null)
+        {
+            ShowToast("JSON 오류가 있어 저장할 수 없습니다. 오류를 먼저 고치세요.");
+            return;
+        }
+        if (string.IsNullOrEmpty(OutputText))
+        {
+            ShowToast("저장할 내용이 없습니다.");
+            return;
+        }
+
+        string? suggested = CurrentFilePath is null ? null : Path.GetFileName(CurrentFilePath);
+        string? dir = CurrentFilePath is null ? _lastDirectory : Path.GetDirectoryName(CurrentFilePath);
+        var path = FileService.PickSavePath(dir, suggested);
+        if (path is null) return;
+
+        try
+        {
+            FileService.WriteText(path, OutputText);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            MessageBox.Show($"저장하지 못했습니다.\n\n{path}\n\n{ex.Message}", "JSON Pretty",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        _lastDirectory = Path.GetDirectoryName(path);
+        ShowToast($"{Path.GetFileName(path)} 에 저장했습니다.");
     }
 
     /// <summary>뷰가 입력 에디터 내용을 바꿔야 할 때 (붙여넣기, 지우기).</summary>
@@ -113,6 +208,7 @@ public partial class MainViewModel : ObservableObject
         }
         InputReplaceRequested?.Invoke(this, text);
         _input = text;
+        CurrentFilePath = null;
         ReformatNow();
     }
 
@@ -121,6 +217,7 @@ public partial class MainViewModel : ObservableObject
     {
         InputReplaceRequested?.Invoke(this, string.Empty);
         _input = string.Empty;
+        CurrentFilePath = null;
         ReformatNow();
     }
 
