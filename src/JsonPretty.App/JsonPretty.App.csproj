@@ -11,6 +11,8 @@
     <RootNamespace>JsonPretty.App</RootNamespace>
     <AssemblyName>JsonPretty</AssemblyName>
     <Product>JSON Pretty</Product>
+    <!-- 배포 버전. release.ps1 -Version 으로 바꾸면 GitHub Release 태그(v버전)에도 쓰인다 -->
+    <Version>1.0.0</Version>
     <!-- exe 파일 아이콘 (탐색기, 바로 가기). 다시 만들려면 tools\make-icon.ps1 -->
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>

@@ -180,9 +180,13 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(WindowTitle))]
     private string? currentFilePath;
 
+    /// <summary>csproj의 Version (예: 1.0.0)</summary>
+    private static readonly string AppVersion =
+        typeof(MainViewModel).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "";
+
     public string WindowTitle => CurrentFilePath is null
-        ? "JSON Pretty"
-        : $"{Path.GetFileName(CurrentFilePath)} - JSON Pretty";
+        ? $"JSON Pretty {AppVersion}"
+        : $"{Path.GetFileName(CurrentFilePath)} - JSON Pretty {AppVersion}";
 
     [RelayCommand]
     private void OpenFile()

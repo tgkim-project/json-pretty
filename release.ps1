@@ -6,7 +6,14 @@
 .EXAMPLE
   .\release.ps1 -Message "다크 테마 추가" -Push
 
+.EXAMPLE
+  .\release.ps1 -Message "새 기능" -Version 1.1.0 -Push -GitHubRelease
+  버전을 1.1.0으로 올려 빌드하고, push 후 GitHub Releases에 v1.1.0 으로 exe를 올린다.
+
 .NOTES
+  - GitHub Release는 GitHub CLI(gh)로 만든다. 처음 한 번 'gh auth login' 으로 로그인해야 한다.
+  - Releases에도 항상 마지막 버전 하나만 남긴다. 이전 릴리스와 그 태그를 지운 뒤 새로 만든다
+    (예전 태그가 남아 있으면 예전 exe가 든 커밋도 저장소에 계속 남기 때문).
   - 예전 exe를 히스토리에서 지우면 커밋 해시가 바뀌므로 강제 push(--force-with-lease)를 한다.
     다른 PC에 받아 둔 저장소는 새로 받아야 한다.
   - 서버(Gitea)에서 예전 exe가 실제로 사라지는 시점은 서버의 저장소 정리(gc) 주기에 따른다.
@@ -16,12 +23,35 @@ param(
     [Parameter(Mandatory = $true)][string]$Message,
     [switch]$Push,
     # 빌드·테스트 없이 루트에 이미 있는 JsonPretty.exe 로 커밋만 한다
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    # 앱 버전(예: 1.1.0). 주면 csproj의 <Version>을 바꾼 뒤 빌드한다. 안 주면 지금 버전 그대로.
+    [string]$Version,
+    # push 후 GitHub Releases에 v버전 으로 exe를 올린다 (gh 필요)
+    [switch]$GitHubRelease
 )
 
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 $exeName = 'JsonPretty.exe'
+$csproj = Join-Path $PSScriptRoot 'src\JsonPretty.App\JsonPretty.App.csproj'
+
+if ($GitHubRelease) {
+    if (-not $Push) { throw '-GitHubRelease 는 -Push 와 함께 써야 합니다 (릴리스 태그가 push된 커밋을 가리켜야 함).' }
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw 'GitHub CLI(gh)가 없습니다. winget install GitHub.cli 후 gh auth login 하세요.' }
+    & gh auth status *> $null
+    if ($LASTEXITCODE -ne 0) { throw 'gh 로그인이 필요합니다. gh auth login 을 먼저 실행하세요.' }
+}
+
+# 버전 지정 시 csproj 갱신
+$projXml = [IO.File]::ReadAllText($csproj)
+if ($Version) {
+    if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "버전 형식은 1.2.3 이어야 합니다: $Version" }
+    $projXml = [regex]::Replace($projXml, '<Version>[^<]*</Version>', "<Version>$Version</Version>")
+    [IO.File]::WriteAllText($csproj, $projXml, (New-Object Text.UTF8Encoding $false))
+}
+$appVersion = [regex]::Match($projXml, '<Version>([^<]*)</Version>').Groups[1].Value
+if (-not $appVersion) { throw 'csproj에서 <Version>을 찾지 못했습니다.' }
+Write-Host "버전: $appVersion"
 
 function Invoke-Git {
     # git은 줄바꿈 경고 등을 stderr로 내보내는데, PowerShell 5.1은 이를 오류로 취급할 수 있다.
@@ -141,4 +171,39 @@ if ($Push) {
     else {
         Invoke-Git push origin $branch
     }
+}
+
+# 6) GitHub Release: 예전 릴리스·태그를 지우고 v버전 으로 새로 만들어 exe를 올린다
+if ($GitHubRelease) {
+    $originUrl = (Invoke-Git remote get-url origin).Trim()
+    if ($originUrl -notmatch 'github\.com[:/](?<repo>[^/]+/[^/]+?)(\.git)?$') { throw "origin이 GitHub 저장소가 아닙니다: $originUrl" }
+    $repo = $Matches['repo']
+    $tag = "v$appVersion"
+
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $existing = @(& gh release list --repo $repo --limit 100 --json tagName --jq '.[].tagName' 2>$null)
+        foreach ($t in $existing) {
+            if (-not $t) { continue }
+            Write-Host "이전 릴리스 삭제: $t"
+            & gh release delete $t --repo $repo --yes --cleanup-tag
+            if ($LASTEXITCODE -ne 0) { throw "릴리스 $t 삭제 실패" }
+        }
+        # 릴리스 없이 태그만 남아 있는 경우도 정리
+        & git ls-remote --exit-code --tags origin "refs/tags/$tag" *> $null
+        if ($LASTEXITCODE -eq 0) { & git push origin ":refs/tags/$tag" 2>&1 | Out-Null }
+        & git tag -d $tag 2>&1 | Out-Null
+
+        $notes = [IO.Path]::GetTempFileName()
+        $body = "$Message`n`n---`n**JsonPretty.exe** 를 내려받아 바로 실행하세요. Windows x64, .NET 설치 필요 없음 (자체 포함 단일 파일)."
+        [IO.File]::WriteAllText($notes, $body, (New-Object Text.UTF8Encoding $false))
+        & gh release create $tag $exeName --repo $repo --target $branch --title "JSON Pretty $tag" --notes-file $notes --latest
+        $code = $LASTEXITCODE
+        Remove-Item $notes
+        if ($code -ne 0) { throw 'GitHub Release 생성 실패' }
+    }
+    finally { $ErrorActionPreference = $prev }
+
+    Write-Host "GitHub Release: https://github.com/$repo/releases/tag/$tag"
 }
