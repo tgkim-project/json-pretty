@@ -1,6 +1,10 @@
 # JSON Pretty
 
-정돈되지 않은 JSON을 정렬해서 보여주고 복사할 수 있는 Windows 프로그램 (WPF / .NET 8). 설계는 [DESIGN.md](DESIGN.md) 참고.
+정돈되지 않은 JSON을 정렬해서 보여주고 복사할 수 있는 Windows 프로그램 (WPF / .NET 9). 설계는 [DESIGN.md](DESIGN.md) 참고.
+
+## 바로 실행
+
+루트의 **`JsonPretty.exe`** 를 실행하면 됩니다. .NET 설치가 필요 없는 자체 포함 단일 파일(win-x64)이며, 저장소에는 항상 마지막 버전 하나만 있습니다.
 
 ## 실행
 
@@ -14,11 +18,17 @@ dotnet run --project src/JsonPretty.App
 dotnet test
 ```
 
-## 단일 exe 배포
+## 배포 (exe 갱신)
+
+빌드에는 .NET 9 SDK가 필요합니다.
 
 ```powershell
-dotnet publish src/JsonPretty.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
+.\release.ps1 -Message "커밋 메시지" -Push
 ```
+
+테스트 → 자체 포함 exe 생성 → 루트 `JsonPretty.exe` 교체 → 커밋 → push 순서로 진행합니다.
+저장소에 예전 exe가 쌓이지 않도록 **이전 커밋들에서 예전 exe를 히스토리에서 지우고 강제 push**합니다
+(커밋 해시가 바뀌므로 다른 PC의 저장소는 새로 받아야 합니다. 서버에서 실제 용량이 줄어드는 시점은 Gitea의 저장소 정리 주기에 따릅니다).
 
 ## 단축키
 
@@ -42,5 +52,7 @@ dotnet publish src/JsonPretty.App -c Release -r win-x64 --self-contained -p:Publ
 **찾기**: 입력/출력 창에서 `Ctrl+F` (다음 `F3`, 이전 `Shift+F3`).
 
 **클립보드 감지**(기본 켬): 다른 프로그램에서 JSON을 복사하고 돌아오면 붙여넣기를 제안합니다. 같은 내용은 한 번만 묻고, 이 프로그램에서 복사한 내용은 묻지 않습니다.
+
+**테마**: 툴바에서 시스템 / 라이트 / 다크 선택. "시스템"은 Windows 앱 모드 설정을 따라가며, 설정이 바뀌면 바로 반영됩니다.
 
 출력 창은 객체/배열 단위로 접을 수 있습니다(줄 번호 옆 `⊟`). 오른쪽 위 "모두 접기 / 모두 펼치기" 또는 우클릭 메뉴를 사용하세요.

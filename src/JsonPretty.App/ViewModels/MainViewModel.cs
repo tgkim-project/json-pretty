@@ -11,6 +11,8 @@ namespace JsonPretty.App.ViewModels;
 
 public enum OutputMode { Pretty, Minified }
 
+public sealed record ThemeChoice(string Label, AppTheme Theme);
+
 public sealed record IndentChoice(string Label, int Size, bool UseTabs)
 {
     public override string ToString() => Label;
@@ -40,6 +42,7 @@ public partial class MainViewModel : ObservableObject
         sortKeys = settings.SortKeys;
         allowLenient = settings.Lenient;
         detectClipboard = settings.DetectClipboard;
+        selectedTheme = ThemeChoices.FirstOrDefault(t => t.Theme.ToString() == settings.Theme) ?? ThemeChoices[0];
         _lastDirectory = settings.LastDirectory;
     }
 
@@ -51,8 +54,21 @@ public partial class MainViewModel : ObservableObject
         settings.SortKeys = SortKeys;
         settings.Lenient = AllowLenient;
         settings.DetectClipboard = DetectClipboard;
+        settings.Theme = SelectedTheme.Theme.ToString();
         settings.LastDirectory = _lastDirectory;
     }
+
+    // ---------- 테마 ----------
+
+    public IReadOnlyList<ThemeChoice> ThemeChoices { get; } =
+    [
+        new("시스템", AppTheme.System),
+        new("라이트", AppTheme.Light),
+        new("다크", AppTheme.Dark),
+    ];
+
+    [ObservableProperty] private ThemeChoice selectedTheme;
+    partial void OnSelectedThemeChanged(ThemeChoice value) => ThemeService.Apply(value.Theme);
 
     // ---------- 느슨한 입력 ----------
 

@@ -12,6 +12,9 @@ public sealed class AppSettings
     public bool Lenient { get; set; } = true;
     public bool DetectClipboard { get; set; } = true;
 
+    /// <summary>System / Light / Dark</summary>
+    public string Theme { get; set; } = "System";
+
     public double? WindowLeft { get; set; }
     public double? WindowTop { get; set; }
     public double? WindowWidth { get; set; }

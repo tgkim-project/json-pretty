@@ -9,6 +9,7 @@ using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Folding;
 using ICSharpCode.AvalonEdit.Highlighting;
 using JsonPretty.App.Editor;
+using JsonPretty.App.Services;
 using JsonPretty.App.ViewModels;
 using JsonPretty.Core;
 
@@ -25,17 +26,26 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        // 테마(색 리소스)는 XAML의 DynamicResource가 찾을 수 있도록 화면을 만들기 전에 적용한다.
+        _settings = _settingsStore.Load();
+        ThemeService.Initialize(Enum.TryParse<AppTheme>(_settings.Theme, out var theme) ? theme : AppTheme.System);
+
         InitializeComponent();
 
-        _settings = _settingsStore.Load();
         DataContext = new MainViewModel(_settings);
         RestoreLayout(_settings);
         Closing += (_, _) => SaveSettings();
 
-        var highlighting = HighlightingManager.Instance.GetDefinition("Json")
-                           ?? HighlightingManager.Instance.GetDefinition("JavaScript");
+        var highlighting = ThemeService.GetJsonHighlighting();
         InputEditor.SyntaxHighlighting = highlighting;
         OutputEditor.SyntaxHighlighting = highlighting;
+
+        // 테마가 바뀌면 구문 강조 색이 바뀌었으므로 에디터를 다시 그린다.
+        ThemeService.Applied += (_, _) =>
+        {
+            InputEditor.TextArea.TextView.Redraw();
+            OutputEditor.TextArea.TextView.Redraw();
+        };
 
         _outputFolding = FoldingManager.Install(OutputEditor.TextArea);
 

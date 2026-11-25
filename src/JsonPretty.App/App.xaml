@@ -3,10 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-        <Style TargetType="Button">
-            <Setter Property="Padding" Value="12,4" />
-            <Setter Property="Margin" Value="0,0,6,0" />
-            <Setter Property="MinWidth" Value="64" />
-        </Style>
+        <!-- 테마 색(Themes/Light.xaml 또는 Dark.xaml)은 ThemeService가 MergedDictionaries에 넣는다. -->
+        <ResourceDictionary />
     </Application.Resources>
 </Application>

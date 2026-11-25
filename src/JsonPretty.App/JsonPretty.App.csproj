@@ -2,7 +2,9 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <!-- WPF0001: .NET 9 Fluent 테마(ThemeMode)는 실험 기능 경고 -->
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
