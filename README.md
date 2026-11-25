@@ -1,4 +1,4 @@
-# JSON Pretty
+# <img src="src/JsonPretty.App/Assets/app-256.png" width="40" align="top" /> JSON Pretty
 
 정돈되지 않은 JSON을 정렬해서 보여주고 복사할 수 있는 Windows 프로그램 (WPF / .NET 9). 설계는 [DESIGN.md](DESIGN.md) 참고.
 

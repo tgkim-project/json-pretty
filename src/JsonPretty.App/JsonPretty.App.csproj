@@ -11,7 +11,15 @@
     <RootNamespace>JsonPretty.App</RootNamespace>
     <AssemblyName>JsonPretty</AssemblyName>
     <Product>JSON Pretty</Product>
+    <!-- exe 파일 아이콘 (탐색기, 바로 가기). 다시 만들려면 tools\make-icon.ps1 -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 창 제목 표시줄·작업 표시줄 아이콘 -->
+    <Resource Include="Assets\app.ico" />
+    <None Remove="Assets\app-256.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
