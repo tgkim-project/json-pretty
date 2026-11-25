@@ -4,7 +4,8 @@
 
 ## 바로 실행
 
-루트의 **`JsonPretty.exe`** 를 실행하면 됩니다. .NET 설치가 필요 없는 자체 포함 단일 파일(win-x64)이며, 저장소에는 항상 마지막 버전 하나만 있습니다.
+[**Releases**](https://github.com/tgkim-project/json-pretty/releases/latest)에서 `JsonPretty.exe` 를 내려받아 실행하거나, 저장소 루트의 `JsonPretty.exe` 를 실행하면 됩니다.
+.NET 설치가 필요 없는 자체 포함 단일 파일(win-x64)이며, 저장소와 Releases 모두 항상 마지막 버전 하나만 있습니다.
 
 ## 실행
 
@@ -23,12 +24,16 @@ dotnet test
 빌드에는 .NET 9 SDK가 필요합니다.
 
 ```powershell
-.\release.ps1 -Message "커밋 메시지" -Push
+.\release.ps1 -Message "커밋 메시지" -Version 1.1.0 -Push -GitHubRelease
 ```
 
-테스트 → 자체 포함 exe 생성 → 루트 `JsonPretty.exe` 교체 → 커밋 → push 순서로 진행합니다.
-저장소에 예전 exe가 쌓이지 않도록 **이전 커밋들에서 예전 exe를 히스토리에서 지우고 강제 push**합니다
-(커밋 해시가 바뀌므로 다른 PC의 저장소는 새로 받아야 합니다. 서버에서 실제 용량이 줄어드는 시점은 Gitea의 저장소 정리 주기에 따릅니다).
+테스트 → 버전 변경 → 자체 포함 exe 생성 → 루트 `JsonPretty.exe` 교체 → 커밋 → push → GitHub Release(`v1.1.0`) 생성 순서로 진행합니다.
+`-Version` 을 빼면 지금 버전 그대로, `-GitHubRelease` 를 빼면 Releases는 건드리지 않습니다.
+
+- 저장소에 예전 exe가 쌓이지 않도록 **이전 커밋들에서 예전 exe를 히스토리에서 지우고 강제 push**합니다
+  (커밋 해시가 바뀌므로 다른 PC의 저장소는 새로 받아야 합니다. 서버에서 실제 용량이 줄어드는 시점은 GitHub의 저장소 정리 주기에 따릅니다).
+- Releases도 **이전 릴리스와 태그를 지우고** 최신 하나만 남깁니다.
+- GitHub Release에는 [GitHub CLI](https://cli.github.com/)(`gh`)가 필요하며, 처음 한 번 `gh auth login` 으로 로그인합니다.
 
 ## 단축키
 
