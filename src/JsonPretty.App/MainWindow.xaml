@@ -72,7 +72,14 @@
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Column="0" Text="입력 (원본 JSON)" Margin="8,6" Foreground="#666666" />
-            <TextBlock Grid.Column="2" Text="출력 (정렬 결과)" Margin="8,6" Foreground="#666666" />
+            <DockPanel Grid.Column="2" Margin="8,6">
+                <TextBlock DockPanel.Dock="Right">
+                    <Hyperlink Click="FoldAll_Click">모두 접기</Hyperlink>
+                    <Run Text="  ·  " Foreground="#AAAAAA" />
+                    <Hyperlink Click="UnfoldAll_Click">모두 펼치기</Hyperlink>
+                </TextBlock>
+                <TextBlock Text="출력 (정렬 결과)" Foreground="#666666" />
+            </DockPanel>
 
             <avalon:TextEditor x:Name="InputEditor" Grid.Row="1" Grid.Column="0"
                                FontFamily="Consolas, Malgun Gothic" FontSize="14"
@@ -87,7 +94,18 @@
                                FontFamily="Consolas, Malgun Gothic" FontSize="14"
                                ShowLineNumbers="True" IsReadOnly="True" WordWrap="False"
                                HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                               Background="#FAFAFA" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0" />
+                               Background="#FAFAFA" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0">
+                <avalon:TextEditor.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="선택 영역 복사" Command="ApplicationCommands.Copy" InputGestureText="Ctrl+C" />
+                        <MenuItem Header="전체 복사" Command="{Binding CopyCommand}" InputGestureText="Ctrl+Shift+C" />
+                        <MenuItem Header="압축해서 복사" Command="{Binding CopyMinifiedCommand}" InputGestureText="Ctrl+Alt+C" />
+                        <Separator />
+                        <MenuItem Header="모두 접기" Click="FoldAll_Click" />
+                        <MenuItem Header="모두 펼치기" Click="UnfoldAll_Click" />
+                    </ContextMenu>
+                </avalon:TextEditor.ContextMenu>
+            </avalon:TextEditor>
         </Grid>
     </DockPanel>
 </Window>
