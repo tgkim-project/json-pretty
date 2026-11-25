@@ -5,6 +5,7 @@
 ![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6)
 [![Last commit](https://img.shields.io/github/last-commit/tgkim-project/json-pretty)](https://github.com/tgkim-project/json-pretty/commits/main)
+[![License: MIT](https://img.shields.io/github/license/tgkim-project/json-pretty)](LICENSE)
 
 정돈되지 않은 JSON을 정렬해서 보여주고 복사할 수 있는 Windows 프로그램 (WPF / .NET 9). 설계는 [DESIGN.md](DESIGN.md) 참고.
 
@@ -67,3 +68,7 @@ dotnet test
 **테마**: 툴바에서 시스템 / 라이트 / 다크 선택. "시스템"은 Windows 앱 모드 설정을 따라가며, 설정이 바뀌면 바로 반영됩니다.
 
 출력 창은 객체/배열 단위로 접을 수 있습니다(줄 번호 옆 `⊟`). 오른쪽 위 "모두 접기 / 모두 펼치기" 또는 우클릭 메뉴를 사용하세요.
+
+## 라이선스
+
+[MIT](LICENSE)
