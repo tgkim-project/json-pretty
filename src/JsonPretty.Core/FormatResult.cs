@@ -6,9 +6,10 @@ public sealed record FormatError(int Line, int Column, string Message);
 /// <summary>JSON 구조 통계.</summary>
 public sealed record JsonStats(int Objects, int Arrays, int Values, int MaxDepth);
 
-public sealed record FormatResult(bool Success, string Output, FormatError? Error, JsonStats? Stats)
+/// <param name="Notice">입력을 자동으로 고쳤을 때 사용자에게 알릴 내용 (없으면 null).</param>
+public sealed record FormatResult(bool Success, string Output, FormatError? Error, JsonStats? Stats, string? Notice = null)
 {
-    public static FormatResult Ok(string output, JsonStats stats) => new(true, output, null, stats);
+    public static FormatResult Ok(string output, JsonStats stats, string? notice = null) => new(true, output, null, stats, notice);
 
     public static FormatResult Fail(FormatError error) => new(false, string.Empty, error, null);
 

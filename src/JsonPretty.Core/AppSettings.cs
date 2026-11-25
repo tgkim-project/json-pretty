@@ -9,6 +9,8 @@ public sealed class AppSettings
     public int IndentSize { get; set; } = 2;
     public bool UseTabs { get; set; }
     public bool SortKeys { get; set; }
+    public bool Lenient { get; set; } = true;
+    public bool DetectClipboard { get; set; } = true;
 
     public double? WindowLeft { get; set; }
     public double? WindowTop { get; set; }

@@ -1,6 +1,9 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using ICSharpCode.AvalonEdit.Search;
 using System.Windows.Threading;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Folding;
@@ -35,6 +38,13 @@ public partial class MainWindow : Window
         OutputEditor.SyntaxHighlighting = highlighting;
 
         _outputFolding = FoldingManager.Install(OutputEditor.TextArea);
+
+        // Ctrl+F 찾기 (F3 / Shift+F3 다음·이전)
+        SearchPanel.Install(InputEditor).Localization = KoreanSearchLocalization.Instance;
+        SearchPanel.Install(OutputEditor).Localization = KoreanSearchLocalization.Instance;
+
+        // 다른 프로그램에서 JSON을 복사해 돌아오면 붙여넣기를 제안
+        Activated += (_, _) => Vm.CheckClipboard();
         _errorMarker = new ErrorMarkerRenderer(InputEditor.TextArea.TextView);
 
         // AvalonEdit의 Text는 의존성 속성이 아니라서 코드 비하인드에서 연결한다.
@@ -152,6 +162,31 @@ public partial class MainWindow : Window
         e.Handled = true;
         Activate();
         Vm.LoadFile(path);
+    }
+
+    private void OutputTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // 탭 안의 콤보박스 등에서 올라온 이벤트는 무시
+        if (!ReferenceEquals(e.OriginalSource, OutputTabs)) return;
+        Vm.IsTreeTabSelected = OutputTabs.SelectedIndex == 1;
+    }
+
+    private void JsonTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e) =>
+        Vm.SelectedTreeNode = e.NewValue as JsonTreeNode;
+
+    /// <summary>우클릭한 항목을 먼저 선택해서 메뉴가 그 노드에 대해 동작하게 한다.</summary>
+    private void JsonTree_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var source = e.OriginalSource as DependencyObject;
+        while (source is not null and not TreeViewItem)
+            source = source is Visual or System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(source)
+                : LogicalTreeHelper.GetParent(source);
+        if (source is TreeViewItem item)
+        {
+            item.IsSelected = true;
+            item.Focus();
+        }
     }
 
     private void FoldAll_Click(object sender, RoutedEventArgs e) => JsonFoldingStrategy.SetAll(_outputFolding, folded: true);

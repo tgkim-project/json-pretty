@@ -38,6 +38,8 @@ public partial class MainViewModel : ObservableObject
         selectedIndent = IndentChoices.FirstOrDefault(c => settings.UseTabs ? c.UseTabs : !c.UseTabs && c.Size == settings.IndentSize)
                          ?? IndentChoices[0];
         sortKeys = settings.SortKeys;
+        allowLenient = settings.Lenient;
+        detectClipboard = settings.DetectClipboard;
         _lastDirectory = settings.LastDirectory;
     }
 
@@ -47,7 +49,113 @@ public partial class MainViewModel : ObservableObject
         settings.IndentSize = SelectedIndent.UseTabs ? 2 : SelectedIndent.Size;
         settings.UseTabs = SelectedIndent.UseTabs;
         settings.SortKeys = SortKeys;
+        settings.Lenient = AllowLenient;
+        settings.DetectClipboard = DetectClipboard;
         settings.LastDirectory = _lastDirectory;
+    }
+
+    // ---------- 느슨한 입력 ----------
+
+    [ObservableProperty] private bool allowLenient;
+    partial void OnAllowLenientChanged(bool value) => ReformatNow();
+
+    // ---------- 트리 보기 ----------
+
+    private bool _treeDirty = true;
+
+    public JsonTreeModel Tree { get; } = new();
+
+    [ObservableProperty] private bool isTreeTabSelected;
+    partial void OnIsTreeTabSelectedChanged(bool value) => RefreshTreeIfVisible();
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CopyTreePathCommand), nameof(CopyTreeValueCommand))]
+    private JsonTreeNode? selectedTreeNode;
+
+    partial void OnOutputTextChanged(string value)
+    {
+        _treeDirty = true;
+        RefreshTreeIfVisible();
+    }
+
+    /// <summary>트리는 만들 때 비용이 드므로 트리 탭이 보일 때만 다시 만든다.</summary>
+    private void RefreshTreeIfVisible()
+    {
+        if (!IsTreeTabSelected || !_treeDirty) return;
+        _treeDirty = false;
+        SelectedTreeNode = null;
+        Tree.Build(OutputText);
+    }
+
+    private bool HasSelectedTreeNode() => SelectedTreeNode is not null;
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTreeNode))]
+    private void CopyTreePath() => CopyToClipboard(SelectedTreeNode!.Path, $"경로를 복사했습니다: {SelectedTreeNode.Path}");
+
+    [RelayCommand(CanExecute = nameof(HasSelectedTreeNode))]
+    private void CopyTreeValue() =>
+        CopyToClipboard(SelectedTreeNode!.GetCopyValue(_formatter, BuildOptions()), "값을 복사했습니다.");
+
+    // ---------- 클립보드 감지 ----------
+
+    private const int ClipboardDetectMaxLength = 5 * 1024 * 1024;
+    private string? _lastSeenClipboard;
+
+    [ObservableProperty] private bool detectClipboard;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasClipboardSuggestion))]
+    private string? clipboardSuggestion;
+
+    [ObservableProperty] private string clipboardSuggestionInfo = string.Empty;
+
+    public bool HasClipboardSuggestion => ClipboardSuggestion is not null;
+
+    /// <summary>
+    /// 창이 활성화될 때 호출. 클립보드에 새 JSON이 있으면 붙여넣기를 제안한다.
+    /// 같은 내용은 한 번만 묻고, 이 프로그램이 복사한 내용은 묻지 않는다.
+    /// </summary>
+    public void CheckClipboard()
+    {
+        if (!DetectClipboard) return;
+
+        string? text = ClipboardService.TryGetText();
+        if (string.IsNullOrWhiteSpace(text) || text == _lastSeenClipboard) return;
+        _lastSeenClipboard = text;
+
+        if (text.Length > ClipboardDetectMaxLength || text == _input) return;
+        string trimmed = text.TrimStart();
+        if (trimmed.Length == 0 || trimmed[0] is not ('{' or '[')) return;
+
+        var result = _formatter.Minify(text, BuildOptions());
+        if (!result.Success || result.Stats is null) return;
+
+        int lines = 1;
+        foreach (char c in text) if (c == '\n') lines++;
+        ClipboardSuggestionInfo = $"클립보드에 JSON이 있습니다 ({lines:N0}줄, {FormatSize(Encoding.UTF8.GetByteCount(text))}). 붙여넣을까요?";
+        ClipboardSuggestion = text;
+    }
+
+    [RelayCommand]
+    private void AcceptClipboardSuggestion()
+    {
+        if (ClipboardSuggestion is not { } text) return;
+        ClipboardSuggestion = null;
+        InputReplaceRequested?.Invoke(this, text);
+        _input = text;
+        CurrentFilePath = null;
+        ReformatNow();
+    }
+
+    [RelayCommand]
+    private void DismissClipboardSuggestion() => ClipboardSuggestion = null;
+
+    [RelayCommand]
+    private void DisableClipboardDetection()
+    {
+        ClipboardSuggestion = null;
+        DetectClipboard = false;
+        ShowToast("클립보드 감지를 껐습니다. 상단 옵션에서 다시 켤 수 있습니다.");
     }
 
     private string? _lastDirectory;
@@ -209,6 +317,8 @@ public partial class MainViewModel : ObservableObject
         InputReplaceRequested?.Invoke(this, text);
         _input = text;
         CurrentFilePath = null;
+        _lastSeenClipboard = text;
+        ClipboardSuggestion = null; // 이미 붙여넣었으니 제안 배너는 닫는다
         ReformatNow();
     }
 
@@ -228,9 +338,9 @@ public partial class MainViewModel : ObservableObject
             ShowToast("복사할 내용이 없습니다.");
             return;
         }
-        ShowToast(ClipboardService.TrySetText(text)
-            ? successMessage
-            : "클립보드를 사용할 수 없습니다. 잠시 후 다시 시도하세요.");
+        bool ok = ClipboardService.TrySetText(text);
+        if (ok) _lastSeenClipboard = text; // 직접 복사한 내용은 붙여넣기 제안을 하지 않는다
+        ShowToast(ok ? successMessage : "클립보드를 사용할 수 없습니다. 잠시 후 다시 시도하세요.");
     }
 
     private void ShowToast(string message)
@@ -245,6 +355,7 @@ public partial class MainViewModel : ObservableObject
         IndentSize = SelectedIndent.Size,
         UseTabs = SelectedIndent.UseTabs,
         SortKeys = SortKeys,
+        Lenient = AllowLenient,
     };
 
     private FormatResult Run(string input, FormatOptions options, OutputMode mode) =>
@@ -293,7 +404,8 @@ public partial class MainViewModel : ObservableObject
         int lines = 1;
         foreach (char c in result.Output) if (c == '\n') lines++;
 
-        StatusText = $"✔  유효한 JSON   |   객체 {s.Objects} · 배열 {s.Arrays} · 값 {s.Values} · 깊이 {s.MaxDepth}" +
+        string notice = result.Notice is null ? string.Empty : $"  ({result.Notice})";
+        StatusText = $"✔  유효한 JSON{notice}   |   객체 {s.Objects} · 배열 {s.Arrays} · 값 {s.Values} · 깊이 {s.MaxDepth}" +
                      $"   |   {FormatSize(Encoding.UTF8.GetByteCount(result.Output))}   |   {lines:N0}줄";
     }
 

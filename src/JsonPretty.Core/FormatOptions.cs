@@ -15,6 +15,12 @@ public sealed record FormatOptions
     /// <summary>true면 한글 등 비 ASCII 문자를 \uXXXX로 이스케이프.</summary>
     public bool EscapeNonAscii { get; init; }
 
+    /// <summary>표준이 아닌 입력(작은따옴표, 따옴표 없는 키, True/None 등)을 보정해서 받아들일지.</summary>
+    public bool Lenient { get; init; } = true;
+
+    /// <summary>최상위가 JSON을 담은 문자열이면 풀어서 보여줄지.</summary>
+    public bool UnwrapEmbeddedJson { get; init; } = true;
+
     /// <summary>줄바꿈 문자. Windows 기본은 CRLF.</summary>
     public string NewLine { get; init; } = "\r\n";
 
