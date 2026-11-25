@@ -31,32 +31,53 @@
 
     <DockPanel>
         <!-- 툴바 -->
-        <Border DockPanel.Dock="Top" Padding="8" Background="{DynamicResource Brush.Bar}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
+        <!-- 창이 좁으면 기능 묶음 단위로 다음 줄로 넘어간다.
+             묶음마다 위아래 여백을 줘서 두 줄이 되어도 겹쳐 보이지 않게 하고,
+             줄 끝에 구분선만 남는 일이 없도록 구분선 대신 묶음 사이 간격으로 나눈다. -->
+        <Border DockPanel.Dock="Top" Padding="8,4" Background="{DynamicResource Brush.Bar}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
             <WrapPanel Orientation="Horizontal">
-                <Button Content="열기" Command="{Binding OpenFileCommand}" ToolTip="JSON 파일 열기 (Ctrl+O). 파일을 창에 끌어다 놓아도 됩니다." />
-                <Button Content="저장" Command="{Binding SaveFileCommand}" ToolTip="정렬 결과를 파일로 저장 (Ctrl+S)" />
-                <Separator Margin="4,0,10,0" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-                <Button Content="붙여넣기" Command="{Binding PasteCommand}" ToolTip="클립보드 내용을 입력에 붙여넣기 (Ctrl+Shift+V)" />
-                <Button Content="지우기" Command="{Binding ClearCommand}" />
-                <Separator Margin="4,0,10,0" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-                <Button Content="정렬 ▶" Command="{Binding FormatCommand}" FontWeight="SemiBold" ToolTip="보기 좋게 정렬 (Ctrl+Enter)" />
-                <Button Content="압축" Command="{Binding MinifyCommand}" ToolTip="공백 없이 한 줄로" />
-                <Separator Margin="4,0,10,0" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-                <Button Content="복사" Command="{Binding CopyCommand}" FontWeight="SemiBold" ToolTip="결과 전체 복사 (Ctrl+Shift+C)" />
-                <Button Content="압축 복사" Command="{Binding CopyMinifiedCommand}" ToolTip="한 줄로 압축해서 복사 (Ctrl+Alt+C)" />
-                <Separator Margin="4,0,10,0" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-                <!-- 옵션은 한 덩어리로 묶어 창이 좁을 때 함께 다음 줄로 넘어가게 한다 -->
-                <StackPanel Orientation="Horizontal">
+                <WrapPanel.Resources>
+                    <Style x:Key="ToolGroup" TargetType="StackPanel">
+                        <Setter Property="Orientation" Value="Horizontal" />
+                        <Setter Property="Margin" Value="0,4,14,4" />
+                    </Style>
+                    <!-- Fluent 체크박스는 최소 너비가 커서 간격이 벌어지므로 줄인다 -->
+                    <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+                        <Setter Property="MinWidth" Value="0" />
+                        <Setter Property="Margin" Value="0,0,14,0" />
+                        <Setter Property="VerticalAlignment" Value="Center" />
+                    </Style>
+                </WrapPanel.Resources>
+
+                <StackPanel Style="{StaticResource ToolGroup}">
+                    <Button Content="열기" Command="{Binding OpenFileCommand}" ToolTip="JSON 파일 열기 (Ctrl+O). 파일을 창에 끌어다 놓아도 됩니다." />
+                    <Button Content="저장" Command="{Binding SaveFileCommand}" ToolTip="정렬 결과를 파일로 저장 (Ctrl+S)" />
+                </StackPanel>
+                <StackPanel Style="{StaticResource ToolGroup}">
+                    <Button Content="붙여넣기" Command="{Binding PasteCommand}" ToolTip="클립보드 내용을 입력에 붙여넣기 (Ctrl+Shift+V)" />
+                    <Button Content="지우기" Command="{Binding ClearCommand}" />
+                </StackPanel>
+                <StackPanel Style="{StaticResource ToolGroup}">
+                    <Button Content="정렬 ▶" Command="{Binding FormatCommand}" FontWeight="SemiBold" ToolTip="보기 좋게 정렬 (Ctrl+Enter)" />
+                    <Button Content="압축" Command="{Binding MinifyCommand}" ToolTip="공백 없이 한 줄로" />
+                </StackPanel>
+                <StackPanel Style="{StaticResource ToolGroup}">
+                    <Button Content="복사" Command="{Binding CopyCommand}" FontWeight="SemiBold" ToolTip="결과 전체 복사 (Ctrl+Shift+C)" />
+                    <Button Content="압축 복사" Command="{Binding CopyMinifiedCommand}" ToolTip="한 줄로 압축해서 복사 (Ctrl+Alt+C)" />
+                </StackPanel>
+                <StackPanel Style="{StaticResource ToolGroup}">
                     <TextBlock Text="들여쓰기" VerticalAlignment="Center" Margin="0,0,6,0" />
-                    <ComboBox ItemsSource="{Binding IndentChoices}" SelectedItem="{Binding SelectedIndent}" Width="70" VerticalContentAlignment="Center" />
-                    <CheckBox Content="키 정렬" IsChecked="{Binding SortKeys}" VerticalAlignment="Center" Margin="12,0,0,0" ToolTip="객체 키를 이름순으로 정렬" />
-                    <CheckBox Content="느슨한 입력" IsChecked="{Binding AllowLenient}" VerticalAlignment="Center" Margin="12,0,0,0"
-                              ToolTip="작은따옴표 문자열, 따옴표 없는 키, True/False/None 을 표준 JSON으로 보정해서 받아들입니다" />
-                    <CheckBox Content="클립보드 감지" IsChecked="{Binding DetectClipboard}" VerticalAlignment="Center" Margin="12,0,0,0"
-                              ToolTip="창으로 돌아왔을 때 클립보드에 새 JSON이 있으면 붙여넣기를 제안합니다" />
-                    <TextBlock Text="테마" VerticalAlignment="Center" Margin="12,0,6,0" />
+                    <ComboBox ItemsSource="{Binding IndentChoices}" SelectedItem="{Binding SelectedIndent}" Width="80" VerticalContentAlignment="Center" />
+                    <TextBlock Text="테마" VerticalAlignment="Center" Margin="14,0,6,0" />
                     <ComboBox ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme}" DisplayMemberPath="Label"
-                              Width="90" VerticalContentAlignment="Center" />
+                              Width="96" VerticalContentAlignment="Center" />
+                </StackPanel>
+                <StackPanel Style="{StaticResource ToolGroup}">
+                    <CheckBox Content="키 정렬" IsChecked="{Binding SortKeys}" ToolTip="객체 키를 이름순으로 정렬" />
+                    <CheckBox Content="느슨한 입력" IsChecked="{Binding AllowLenient}"
+                              ToolTip="작은따옴표 문자열, 따옴표 없는 키, True/False/None 을 표준 JSON으로 보정해서 받아들입니다" />
+                    <CheckBox Content="클립보드 감지" IsChecked="{Binding DetectClipboard}" Margin="0"
+                              ToolTip="창으로 돌아왔을 때 클립보드에 새 JSON이 있으면 붙여넣기를 제안합니다" />
                 </StackPanel>
             </WrapPanel>
         </Border>
