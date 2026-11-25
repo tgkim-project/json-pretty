@@ -5,6 +5,7 @@
 ![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6)
 [![Last commit](https://img.shields.io/github/last-commit/tgkim-project/json-pretty)](https://github.com/tgkim-project/json-pretty/commits/main)
+[![CI](https://github.com/tgkim-project/json-pretty/actions/workflows/ci.yml/badge.svg)](https://github.com/tgkim-project/json-pretty/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/tgkim-project/json-pretty)](LICENSE)
 
 **한국어** | [English](README.en.md)
@@ -17,6 +18,12 @@
 
 [**Releases**](https://github.com/tgkim-project/json-pretty/releases/latest)에서 `JsonPretty.exe` 를 내려받아 바로 실행하세요.
 .NET 설치가 필요 없는 자체 포함 단일 파일(Windows x64)입니다. 저장소 루트의 `JsonPretty.exe` 도 같은 파일입니다.
+
+> [!NOTE]
+> **처음 실행할 때 "Windows의 PC 보호" 창이 뜨면**
+> 코드 서명이 없는 프로그램이라 Microsoft Defender SmartScreen 경고가 나올 수 있습니다.
+> 창에서 **추가 정보** → **실행**을 누르면 되고, 한 번 실행한 뒤에는 다시 묻지 않습니다.
+> 내려받은 파일이 걱정되면 소스에서 직접 빌드할 수 있습니다 ([개발](#개발) 참고).
 
 ## 주요 기능
 

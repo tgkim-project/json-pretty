@@ -5,6 +5,7 @@
 ![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6)
 [![Last commit](https://img.shields.io/github/last-commit/tgkim-project/json-pretty)](https://github.com/tgkim-project/json-pretty/commits/main)
+[![CI](https://github.com/tgkim-project/json-pretty/actions/workflows/ci.yml/badge.svg)](https://github.com/tgkim-project/json-pretty/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/tgkim-project/json-pretty)](LICENSE)
 
 [한국어](README.md) | **English**
@@ -17,6 +18,12 @@ A Windows desktop app that pretty-prints, validates and copies messy JSON (WPF /
 
 Get `JsonPretty.exe` from [**Releases**](https://github.com/tgkim-project/json-pretty/releases/latest) and run it.
 It is a self-contained single file for Windows x64 — no .NET installation needed. The `JsonPretty.exe` in the repository root is the same file.
+
+> [!NOTE]
+> **If "Windows protected your PC" appears on first launch**
+> The app is not code-signed, so Microsoft Defender SmartScreen may show a warning.
+> Click **More info** → **Run anyway**; Windows won't ask again for that file.
+> If you'd rather not run a downloaded binary, you can build it from source (see [Development](#development)).
 
 ## Features
 
