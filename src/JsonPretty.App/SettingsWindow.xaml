@@ -1,0 +1,79 @@
+<Window x:Class="JsonPretty.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:JsonPretty.App.Localization"
+        Title="{l:Tr Settings_Title}" Icon="Assets/app.ico"
+        Width="580" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{DynamicResource Brush.EditorBackground}" Foreground="{DynamicResource Brush.Text}"
+        FontFamily="Malgun Gothic" FontSize="13">
+
+    <!-- DataContext는 MainViewModel. 바꾸는 즉시 적용되고, 프로그램을 닫을 때 설정 파일에 저장된다. -->
+    <Window.Resources>
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,16,0,8" />
+        </Style>
+        <Style x:Key="Description" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.SubtleText}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="30,0,0,8" />
+        </Style>
+        <Style x:Key="Label" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,0,0" />
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="22,6,22,18">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+            <Button Content="{l:Tr Settings_Close}" IsDefault="True" IsCancel="True" MinWidth="90" Click="Close_Click" />
+        </StackPanel>
+
+        <StackPanel>
+            <!-- 화면 -->
+            <TextBlock Text="{l:Tr Settings_Appearance}" Style="{StaticResource SectionHeader}" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="8" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="{l:Tr Settings_Language}" Style="{StaticResource Label}" />
+                <ComboBox x:Name="LanguageCombo" Grid.Row="0" Grid.Column="1" Width="220" HorizontalAlignment="Left"
+                          ItemsSource="{Binding LanguageChoices}" SelectedItem="{Binding SelectedLanguage}" DisplayMemberPath="Label" />
+
+                <TextBlock Grid.Row="2" Text="{l:Tr Settings_Theme}" Style="{StaticResource Label}" />
+                <ComboBox Grid.Row="2" Grid.Column="1" Width="220" HorizontalAlignment="Left"
+                          ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme}" DisplayMemberPath="Label" />
+            </Grid>
+
+            <!-- 출력 -->
+            <TextBlock Text="{l:Tr Settings_Output}" Style="{StaticResource SectionHeader}" />
+            <Grid Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{l:Tr Indent}" Style="{StaticResource Label}" />
+                <ComboBox Grid.Column="1" Width="220" HorizontalAlignment="Left"
+                          ItemsSource="{Binding IndentChoices}" SelectedItem="{Binding SelectedIndent}" DisplayMemberPath="Label" />
+            </Grid>
+            <CheckBox Content="{l:Tr SortKeys}" IsChecked="{Binding SortKeys}" />
+            <TextBlock Text="{l:Tr Settings_SortKeys_Desc}" Style="{StaticResource Description}" />
+
+            <!-- 입력 -->
+            <TextBlock Text="{l:Tr Settings_Input}" Style="{StaticResource SectionHeader}" />
+            <CheckBox Content="{l:Tr Settings_Lenient}" IsChecked="{Binding AllowLenient}" />
+            <TextBlock Text="{l:Tr Settings_Lenient_Desc}" Style="{StaticResource Description}" />
+            <CheckBox Content="{l:Tr Settings_Clipboard}" IsChecked="{Binding DetectClipboard}" />
+            <TextBlock Text="{l:Tr Settings_Clipboard_Desc}" Style="{StaticResource Description}" />
+        </StackPanel>
+    </DockPanel>
+</Window>

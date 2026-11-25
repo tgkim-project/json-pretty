@@ -9,6 +9,7 @@ using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Folding;
 using ICSharpCode.AvalonEdit.Highlighting;
 using JsonPretty.App.Editor;
+using JsonPretty.App.Localization;
 using JsonPretty.App.Services;
 using JsonPretty.App.ViewModels;
 using JsonPretty.Core;
@@ -27,8 +28,10 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         // 테마(색 리소스)는 XAML의 DynamicResource가 찾을 수 있도록 화면을 만들기 전에 적용한다.
+        // 언어도 같은 이유로 화면을 만들기 전에 정한다.
         _settings = _settingsStore.Load();
         ThemeService.Initialize(Enum.TryParse<AppTheme>(_settings.Theme, out var theme) ? theme : AppTheme.System);
+        Loc.Instance.SetLanguage(Enum.TryParse<AppLanguage>(_settings.Language, out var lang) ? lang : AppLanguage.System);
 
         InitializeComponent();
 
@@ -50,8 +53,16 @@ public partial class MainWindow : Window
         _outputFolding = FoldingManager.Install(OutputEditor.TextArea);
 
         // Ctrl+F 찾기 (F3 / Shift+F3 다음·이전)
-        SearchPanel.Install(InputEditor).Localization = KoreanSearchLocalization.Instance;
-        SearchPanel.Install(OutputEditor).Localization = KoreanSearchLocalization.Instance;
+        // 문구는 LocalizedSearchText가 현재 언어로 돌려준다.
+        SearchPanel.Install(InputEditor).Localization = LocalizedSearchText.Instance;
+        SearchPanel.Install(OutputEditor).Localization = LocalizedSearchText.Instance;
+
+        // 언어가 바뀌면 접기 이름("{ … } 3개 속성")을 새 언어로 다시 만든다.
+        Loc.Instance.LanguageChanged += (_, _) =>
+        {
+            _outputFolding!.Clear();
+            JsonFoldingStrategy.Update(_outputFolding, OutputEditor.Document);
+        };
 
         // 다른 프로그램에서 JSON을 복사해 돌아오면 붙여넣기를 제안
         Activated += (_, _) => Vm.CheckClipboard();
@@ -71,6 +82,7 @@ public partial class MainWindow : Window
             }, DispatcherPriority.Loaded);
         };
         Vm.PropertyChanged += OnViewModelPropertyChanged;
+        Vm.SettingsRequested += (_, _) => new SettingsWindow { Owner = this, DataContext = Vm }.ShowDialog();
 
         Loaded += (_, _) =>
         {

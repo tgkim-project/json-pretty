@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JsonPretty.App.Localization;
 using JsonPretty.App.Services;
 using JsonPretty.Core;
 
@@ -11,11 +12,20 @@ namespace JsonPretty.App.ViewModels;
 
 public enum OutputMode { Pretty, Minified }
 
-public sealed record ThemeChoice(string Label, AppTheme Theme);
-
-public sealed record IndentChoice(string Label, int Size, bool UseTabs)
+public sealed class ThemeChoice(string labelKey, AppTheme theme) : LocalizedItem(labelKey)
 {
-    public override string ToString() => Label;
+    public AppTheme Theme { get; } = theme;
+}
+
+public sealed class LanguageChoice(string labelKey, AppLanguage language) : LocalizedItem(labelKey)
+{
+    public AppLanguage Language { get; } = language;
+}
+
+public sealed class IndentChoice(string labelKey, int size, bool useTabs) : LocalizedItem(labelKey)
+{
+    public int Size { get; } = size;
+    public bool UseTabs { get; } = useTabs;
 }
 
 public partial class MainViewModel : ObservableObject
@@ -25,6 +35,7 @@ public partial class MainViewModel : ObservableObject
     private readonly DispatcherTimer _toastTimer;
     private string _input = string.Empty;
     private int _version;
+    private FormatResult? _lastResult;
 
     public MainViewModel() : this(new AppSettings()) { }
 
@@ -36,14 +47,19 @@ public partial class MainViewModel : ObservableObject
         _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2000) };
         _toastTimer.Tick += (_, _) => { _toastTimer.Stop(); ToastText = string.Empty; };
 
-        // 필드에 직접 넣어 변경 콜백(재정렬)이 돌지 않게 한다.
+        // 필드에 직접 넣어 변경 콜백(재정렬, 테마·언어 적용)이 돌지 않게 한다. 적용은 창이 시작할 때 한다.
         selectedIndent = IndentChoices.FirstOrDefault(c => settings.UseTabs ? c.UseTabs : !c.UseTabs && c.Size == settings.IndentSize)
                          ?? IndentChoices[0];
         sortKeys = settings.SortKeys;
         allowLenient = settings.Lenient;
         detectClipboard = settings.DetectClipboard;
         selectedTheme = ThemeChoices.FirstOrDefault(t => t.Theme.ToString() == settings.Theme) ?? ThemeChoices[0];
+        selectedLanguage = LanguageChoices.FirstOrDefault(l => l.Language.ToString() == settings.Language) ?? LanguageChoices[0];
         _lastDirectory = settings.LastDirectory;
+        statusText = Loc.T("Status_Empty");
+
+        // 언어가 바뀌면 코드에서 만든 문구(상태바, 클립보드 안내, 트리)를 다시 만든다.
+        Loc.Instance.LanguageChanged += (_, _) => RefreshLocalizedText();
     }
 
     /// <summary>현재 옵션을 설정 객체에 기록 (종료 시 저장용).</summary>
@@ -55,16 +71,46 @@ public partial class MainViewModel : ObservableObject
         settings.Lenient = AllowLenient;
         settings.DetectClipboard = DetectClipboard;
         settings.Theme = SelectedTheme.Theme.ToString();
+        settings.Language = SelectedLanguage.Language.ToString();
         settings.LastDirectory = _lastDirectory;
+    }
+
+    // ---------- 설정 창 ----------
+
+    /// <summary>뷰가 설정 창을 열어야 할 때.</summary>
+    public event EventHandler? SettingsRequested;
+
+    [RelayCommand]
+    private void OpenSettings() => SettingsRequested?.Invoke(this, EventArgs.Empty);
+
+    // ---------- 언어 ----------
+
+    public IReadOnlyList<LanguageChoice> LanguageChoices { get; } =
+    [
+        new("Lang_System", AppLanguage.System),
+        new("Lang_Korean", AppLanguage.Korean),
+        new("Lang_English", AppLanguage.English),
+    ];
+
+    [ObservableProperty] private LanguageChoice selectedLanguage;
+    partial void OnSelectedLanguageChanged(LanguageChoice value) => Loc.Instance.SetLanguage(value.Language);
+
+    private void RefreshLocalizedText()
+    {
+        if (_lastResult is { } r) Apply(r);
+        else if (LastError is null) StatusText = Loc.T("Status_Empty");
+        if (ClipboardSuggestion is { } text) ClipboardSuggestionInfo = BuildClipboardInfo(text);
+        _treeDirty = true;
+        RefreshTreeIfVisible();
     }
 
     // ---------- 테마 ----------
 
     public IReadOnlyList<ThemeChoice> ThemeChoices { get; } =
     [
-        new("시스템", AppTheme.System),
-        new("라이트", AppTheme.Light),
-        new("다크", AppTheme.Dark),
+        new("Theme_System", AppTheme.System),
+        new("Theme_Light", AppTheme.Light),
+        new("Theme_Dark", AppTheme.Dark),
     ];
 
     [ObservableProperty] private ThemeChoice selectedTheme;
@@ -106,11 +152,11 @@ public partial class MainViewModel : ObservableObject
     private bool HasSelectedTreeNode() => SelectedTreeNode is not null;
 
     [RelayCommand(CanExecute = nameof(HasSelectedTreeNode))]
-    private void CopyTreePath() => CopyToClipboard(SelectedTreeNode!.Path, $"경로를 복사했습니다: {SelectedTreeNode.Path}");
+    private void CopyTreePath() => CopyToClipboard(SelectedTreeNode!.Path, Loc.F("Toast_PathCopied", SelectedTreeNode.Path));
 
     [RelayCommand(CanExecute = nameof(HasSelectedTreeNode))]
     private void CopyTreeValue() =>
-        CopyToClipboard(SelectedTreeNode!.GetCopyValue(_formatter, BuildOptions()), "값을 복사했습니다.");
+        CopyToClipboard(SelectedTreeNode!.GetCopyValue(_formatter, BuildOptions()), Loc.T("Toast_ValueCopied"));
 
     // ---------- 클립보드 감지 ----------
 
@@ -146,10 +192,15 @@ public partial class MainViewModel : ObservableObject
         var result = _formatter.Minify(text, BuildOptions());
         if (!result.Success || result.Stats is null) return;
 
+        ClipboardSuggestionInfo = BuildClipboardInfo(text);
+        ClipboardSuggestion = text;
+    }
+
+    private static string BuildClipboardInfo(string text)
+    {
         int lines = 1;
         foreach (char c in text) if (c == '\n') lines++;
-        ClipboardSuggestionInfo = $"클립보드에 JSON이 있습니다 ({lines:N0}줄, {FormatSize(Encoding.UTF8.GetByteCount(text))}). 붙여넣을까요?";
-        ClipboardSuggestion = text;
+        return Loc.F("Clipboard_Info", lines, FormatSize(Encoding.UTF8.GetByteCount(text)));
     }
 
     [RelayCommand]
@@ -171,8 +222,10 @@ public partial class MainViewModel : ObservableObject
     {
         ClipboardSuggestion = null;
         DetectClipboard = false;
-        ShowToast("클립보드 감지를 껐습니다. 상단 옵션에서 다시 켤 수 있습니다.");
+        ShowToast(Loc.T("Toast_ClipboardOff"));
     }
+
+    // ---------- 파일 ----------
 
     private string? _lastDirectory;
 
@@ -206,7 +259,7 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
-            MessageBox.Show($"파일을 열 수 없습니다.\n\n{path}\n\n{ex.Message}", "JSON Pretty",
+            MessageBox.Show(Loc.F("Msg_OpenFailed", path, ex.Message), "JSON Pretty",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -216,7 +269,7 @@ public partial class MainViewModel : ObservableObject
         CurrentFilePath = path;
         _lastDirectory = Path.GetDirectoryName(path);
         ReformatNow();
-        ShowToast($"{Path.GetFileName(path)} 을(를) 열었습니다.");
+        ShowToast(Loc.F("Toast_Opened", Path.GetFileName(path)));
     }
 
     [RelayCommand]
@@ -227,12 +280,12 @@ public partial class MainViewModel : ObservableObject
 
         if (LastError is not null)
         {
-            ShowToast("JSON 오류가 있어 저장할 수 없습니다. 오류를 먼저 고치세요.");
+            ShowToast(Loc.T("Toast_SaveError"));
             return;
         }
         if (string.IsNullOrEmpty(OutputText))
         {
-            ShowToast("저장할 내용이 없습니다.");
+            ShowToast(Loc.T("Toast_NothingToSave"));
             return;
         }
 
@@ -247,30 +300,32 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
-            MessageBox.Show($"저장하지 못했습니다.\n\n{path}\n\n{ex.Message}", "JSON Pretty",
+            MessageBox.Show(Loc.F("Msg_SaveFailed", path, ex.Message), "JSON Pretty",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
         _lastDirectory = Path.GetDirectoryName(path);
-        ShowToast($"{Path.GetFileName(path)} 에 저장했습니다.");
+        ShowToast(Loc.F("Toast_Saved", Path.GetFileName(path)));
     }
+
+    // ---------- 정렬 ----------
 
     /// <summary>뷰가 입력 에디터 내용을 바꿔야 할 때 (붙여넣기, 지우기).</summary>
     public event EventHandler<string>? InputReplaceRequested;
 
     public IReadOnlyList<IndentChoice> IndentChoices { get; } =
     [
-        new("2칸", 2, false),
-        new("4칸", 4, false),
-        new("탭", 1, true),
+        new("Indent_2", 2, false),
+        new("Indent_4", 4, false),
+        new("Indent_Tab", 1, true),
     ];
 
     [ObservableProperty] private IndentChoice selectedIndent;
     [ObservableProperty] private bool sortKeys;
     [ObservableProperty] private OutputMode mode = OutputMode.Pretty;
     [ObservableProperty] private string outputText = string.Empty;
-    [ObservableProperty] private string statusText = "JSON을 붙여넣거나 입력하세요.";
+    [ObservableProperty] private string statusText;
     [ObservableProperty] private FormatError? lastError;
     [ObservableProperty] private string toastText = string.Empty;
 
@@ -307,10 +362,10 @@ public partial class MainViewModel : ObservableObject
 
         if (LastError is not null)
         {
-            ShowToast("JSON 오류가 있어 복사하지 않았습니다. 오류를 먼저 고치세요.");
+            ShowToast(Loc.T("Toast_CopyError"));
             return;
         }
-        CopyToClipboard(OutputText, "정렬 결과를 복사했습니다.");
+        CopyToClipboard(OutputText, Loc.T("Toast_Copied"));
     }
 
     [RelayCommand]
@@ -319,10 +374,10 @@ public partial class MainViewModel : ObservableObject
         var result = _formatter.Minify(_input, BuildOptions());
         if (!result.Success)
         {
-            ShowToast("JSON 오류가 있어 압축 복사할 수 없습니다.");
+            ShowToast(Loc.T("Toast_MinifyError"));
             return;
         }
-        CopyToClipboard(result.Output, "한 줄로 압축해 복사했습니다.");
+        CopyToClipboard(result.Output, Loc.T("Toast_MinifiedCopied"));
     }
 
     [RelayCommand]
@@ -331,7 +386,7 @@ public partial class MainViewModel : ObservableObject
         var text = ClipboardService.TryGetText();
         if (string.IsNullOrEmpty(text))
         {
-            ShowToast("클립보드에 텍스트가 없습니다.");
+            ShowToast(Loc.T("Toast_NoClipboardText"));
             return;
         }
         InputReplaceRequested?.Invoke(this, text);
@@ -355,12 +410,12 @@ public partial class MainViewModel : ObservableObject
     {
         if (string.IsNullOrEmpty(text))
         {
-            ShowToast("복사할 내용이 없습니다.");
+            ShowToast(Loc.T("Toast_NothingToCopy"));
             return;
         }
         bool ok = ClipboardService.TrySetText(text);
         if (ok) _lastSeenClipboard = text; // 직접 복사한 내용은 붙여넣기 제안을 하지 않는다
-        ShowToast(ok ? successMessage : "클립보드를 사용할 수 없습니다. 잠시 후 다시 시도하세요.");
+        ShowToast(ok ? successMessage : Loc.T("Toast_ClipboardBusy"));
     }
 
     private void ShowToast(string message)
@@ -404,11 +459,13 @@ public partial class MainViewModel : ObservableObject
 
     private void Apply(FormatResult result)
     {
+        _lastResult = result;
+
         if (!result.Success)
         {
             // 오류 시 출력은 마지막 성공 결과를 유지한다.
             LastError = result.Error;
-            StatusText = $"✖  {result.Error!.Line}행 {result.Error.Column}열: {result.Error.Message}  (클릭하면 이동)";
+            StatusText = Loc.F("Status_Error", result.Error!.Line, result.Error.Column, result.Error.Message);
             return;
         }
 
@@ -417,16 +474,26 @@ public partial class MainViewModel : ObservableObject
 
         if (result.Stats is not { } s)
         {
-            StatusText = "JSON을 붙여넣거나 입력하세요.";
+            StatusText = Loc.T("Status_Empty");
             return;
         }
 
         int lines = 1;
         foreach (char c in result.Output) if (c == '\n') lines++;
 
-        string notice = result.Notice is null ? string.Empty : $"  ({result.Notice})";
-        StatusText = $"✔  유효한 JSON{notice}   |   객체 {s.Objects} · 배열 {s.Arrays} · 값 {s.Values} · 깊이 {s.MaxDepth}" +
-                     $"   |   {FormatSize(Encoding.UTF8.GetByteCount(result.Output))}   |   {lines:N0}줄";
+        StatusText = Loc.F("Status_Valid", BuildNotice(result), s.Objects, s.Arrays, s.Values, s.MaxDepth,
+                           FormatSize(Encoding.UTF8.GetByteCount(result.Output)), lines);
+    }
+
+    /// <summary>자동 보정 내용을 "  (…, …)" 형태의 현재 언어 문구로.</summary>
+    private static string BuildNotice(FormatResult result)
+    {
+        var parts = new List<string>();
+        if (result.Notices.HasFlag(FormatNotices.LenientFixed))
+            parts.Add(Loc.T("Notice_Lenient"));
+        if (result.Notices.HasFlag(FormatNotices.Unwrapped))
+            parts.Add(result.UnwrapCount <= 1 ? Loc.T("Notice_Unwrap1") : Loc.F("Notice_UnwrapN", result.UnwrapCount));
+        return parts.Count == 0 ? string.Empty : $"  ({string.Join(", ", parts)})";
     }
 
     private static string FormatSize(long bytes) => bytes switch

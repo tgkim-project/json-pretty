@@ -15,6 +15,9 @@ public sealed class AppSettings
     /// <summary>System / Light / Dark</summary>
     public string Theme { get; set; } = "System";
 
+    /// <summary>System / Korean / English</summary>
+    public string Language { get; set; } = "System";
+
     public double? WindowLeft { get; set; }
     public double? WindowTop { get; set; }
     public double? WindowWidth { get; set; }

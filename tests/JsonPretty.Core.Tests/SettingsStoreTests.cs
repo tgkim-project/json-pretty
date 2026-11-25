@@ -1,3 +1,4 @@
+using System.IO;
 using JsonPretty.Core;
 using Xunit;
 

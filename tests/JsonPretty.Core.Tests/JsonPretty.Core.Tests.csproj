@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- 앱(WPF) 문구 표도 검사하므로 앱과 같은 대상 -->
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
@@ -15,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\JsonPretty.Core\JsonPretty.Core.csproj" />
+    <ProjectReference Include="..\..\src\JsonPretty.App\JsonPretty.App.csproj" />
   </ItemGroup>
 
 </Project>

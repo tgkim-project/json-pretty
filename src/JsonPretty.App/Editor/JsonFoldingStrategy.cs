@@ -1,5 +1,6 @@
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Folding;
+using JsonPretty.App.Localization;
 using JsonPretty.Core;
 
 namespace JsonPretty.App.Editor;
@@ -13,8 +14,8 @@ public static class JsonFoldingStrategy
             .Select(f => new NewFolding(f.Start, f.End)
             {
                 Name = f.Open == '{'
-                    ? $"{{ … }} {f.ChildCount}개 속성"
-                    : $"[ … ] {f.ChildCount}개 항목",
+                    ? Loc.F("Fold_Object", f.ChildCount)
+                    : Loc.F("Fold_Array", f.ChildCount),
             });
 
         manager.UpdateFoldings(folds, -1);

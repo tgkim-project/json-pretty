@@ -40,7 +40,8 @@ public sealed class JsonFormatter : IJsonFormatter
         if (string.IsNullOrWhiteSpace(input))
             return FormatResult.Empty;
 
-        var notices = new List<string>();
+        var notices = FormatNotices.None;
+        int unwrapCount = 0;
 
         if (!TryParse(input, out var doc, out var error))
         {
@@ -57,7 +58,7 @@ public sealed class JsonFormatter : IJsonFormatter
                 var (line, column) = PositionOf(input, sourceOffset);
                 return FormatResult.Fail(strictError with { Line = line, Column = column });
             }
-            notices.Add("느슨한 입력을 표준 JSON으로 보정함");
+            notices |= FormatNotices.LenientFixed;
         }
 
         // 로그 등에서 흔한 "{\"a\":1}" 처럼 문자열 안에 JSON이 들어 있으면 풀어 준다(중첩 이스케이프 포함).
@@ -71,14 +72,17 @@ public sealed class JsonFormatter : IJsonFormatter
                 unwrapped++;
             }
             if (unwrapped > 0)
-                notices.Add(unwrapped == 1 ? "문자열 안의 JSON을 풀었음" : $"문자열 안의 JSON을 {unwrapped}번 풀었음");
+            {
+                notices |= FormatNotices.Unwrapped;
+                unwrapCount = unwrapped;
+            }
         }
 
         using (doc)
         {
             var writer = new Writer(options, compact);
             writer.Write(doc!.RootElement, 0);
-            return FormatResult.Ok(writer.ToString(), writer.Stats, notices.Count > 0 ? string.Join(", ", notices) : null);
+            return FormatResult.Ok(writer.ToString(), writer.Stats, notices, unwrapCount);
         }
     }
 

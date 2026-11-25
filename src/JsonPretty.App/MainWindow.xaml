@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
         xmlns:vm="clr-namespace:JsonPretty.App.ViewModels"
+        xmlns:l="clr-namespace:JsonPretty.App.Localization"
         Title="{Binding WindowTitle}" Icon="Assets/app.ico" Width="1200" Height="760" MinWidth="640" MinHeight="400"
         WindowStartupLocation="CenterScreen" AllowDrop="True"
         PreviewDragEnter="Window_PreviewDragOver" PreviewDragOver="Window_PreviewDragOver" PreviewDrop="Window_PreviewDrop"
@@ -27,6 +28,7 @@
         <KeyBinding Modifiers="Ctrl+Alt" Key="C" Command="{Binding CopyMinifiedCommand}" />
         <KeyBinding Modifiers="Ctrl" Key="Enter" Command="{Binding FormatCommand}" />
         <KeyBinding Modifiers="Ctrl+Shift" Key="V" Command="{Binding PasteCommand}" />
+        <KeyBinding Modifiers="Ctrl" Key="OemComma" Command="{Binding OpenSettingsCommand}" />
     </Window.InputBindings>
 
     <DockPanel>
@@ -50,34 +52,29 @@
                 </WrapPanel.Resources>
 
                 <StackPanel Style="{StaticResource ToolGroup}">
-                    <Button Content="열기" Command="{Binding OpenFileCommand}" ToolTip="JSON 파일 열기 (Ctrl+O). 파일을 창에 끌어다 놓아도 됩니다." />
-                    <Button Content="저장" Command="{Binding SaveFileCommand}" ToolTip="정렬 결과를 파일로 저장 (Ctrl+S)" />
+                    <Button Content="{l:Tr Open}" Command="{Binding OpenFileCommand}" ToolTip="{l:Tr Open_Tip}" />
+                    <Button Content="{l:Tr Save}" Command="{Binding SaveFileCommand}" ToolTip="{l:Tr Save_Tip}" />
                 </StackPanel>
                 <StackPanel Style="{StaticResource ToolGroup}">
-                    <Button Content="붙여넣기" Command="{Binding PasteCommand}" ToolTip="클립보드 내용을 입력에 붙여넣기 (Ctrl+Shift+V)" />
-                    <Button Content="지우기" Command="{Binding ClearCommand}" />
+                    <Button Content="{l:Tr Paste}" Command="{Binding PasteCommand}" ToolTip="{l:Tr Paste_Tip}" />
+                    <Button Content="{l:Tr Clear}" Command="{Binding ClearCommand}" />
                 </StackPanel>
                 <StackPanel Style="{StaticResource ToolGroup}">
-                    <Button Content="정렬 ▶" Command="{Binding FormatCommand}" FontWeight="SemiBold" ToolTip="보기 좋게 정렬 (Ctrl+Enter)" />
-                    <Button Content="압축" Command="{Binding MinifyCommand}" ToolTip="공백 없이 한 줄로" />
+                    <Button Content="{l:Tr Format}" Command="{Binding FormatCommand}" FontWeight="SemiBold" ToolTip="{l:Tr Format_Tip}" />
+                    <Button Content="{l:Tr Minify}" Command="{Binding MinifyCommand}" ToolTip="{l:Tr Minify_Tip}" />
                 </StackPanel>
                 <StackPanel Style="{StaticResource ToolGroup}">
-                    <Button Content="복사" Command="{Binding CopyCommand}" FontWeight="SemiBold" ToolTip="결과 전체 복사 (Ctrl+Shift+C)" />
-                    <Button Content="압축 복사" Command="{Binding CopyMinifiedCommand}" ToolTip="한 줄로 압축해서 복사 (Ctrl+Alt+C)" />
+                    <Button Content="{l:Tr Copy}" Command="{Binding CopyCommand}" FontWeight="SemiBold" ToolTip="{l:Tr Copy_Tip}" />
+                    <Button Content="{l:Tr CopyMinified}" Command="{Binding CopyMinifiedCommand}" ToolTip="{l:Tr CopyMinified_Tip}" />
                 </StackPanel>
                 <StackPanel Style="{StaticResource ToolGroup}">
-                    <TextBlock Text="들여쓰기" VerticalAlignment="Center" Margin="0,0,6,0" />
-                    <ComboBox ItemsSource="{Binding IndentChoices}" SelectedItem="{Binding SelectedIndent}" Width="80" VerticalContentAlignment="Center" />
-                    <TextBlock Text="테마" VerticalAlignment="Center" Margin="14,0,6,0" />
-                    <ComboBox ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme}" DisplayMemberPath="Label"
-                              Width="96" VerticalContentAlignment="Center" />
+                    <TextBlock Text="{l:Tr Indent}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <ComboBox ItemsSource="{Binding IndentChoices}" SelectedItem="{Binding SelectedIndent}" DisplayMemberPath="Label"
+                              Width="118" VerticalContentAlignment="Center" />
+                    <CheckBox Content="{l:Tr SortKeys}" IsChecked="{Binding SortKeys}" ToolTip="{l:Tr SortKeys_Tip}" Margin="14,0,0,0" />
                 </StackPanel>
                 <StackPanel Style="{StaticResource ToolGroup}">
-                    <CheckBox Content="키 정렬" IsChecked="{Binding SortKeys}" ToolTip="객체 키를 이름순으로 정렬" />
-                    <CheckBox Content="느슨한 입력" IsChecked="{Binding AllowLenient}"
-                              ToolTip="작은따옴표 문자열, 따옴표 없는 키, True/False/None 을 표준 JSON으로 보정해서 받아들입니다" />
-                    <CheckBox Content="클립보드 감지" IsChecked="{Binding DetectClipboard}" Margin="0"
-                              ToolTip="창으로 돌아왔을 때 클립보드에 새 JSON이 있으면 붙여넣기를 제안합니다" />
+                    <Button Content="{l:Tr Settings}" Command="{Binding OpenSettingsCommand}" ToolTip="{l:Tr Settings_Tip}" Margin="0" />
                 </StackPanel>
             </WrapPanel>
         </Border>
@@ -87,9 +84,9 @@
                 Visibility="{Binding HasClipboardSuggestion, Converter={StaticResource BoolToVisibility}}">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button Content="붙여넣기" Command="{Binding AcceptClipboardSuggestionCommand}" FontWeight="SemiBold" />
-                    <Button Content="무시" Command="{Binding DismissClipboardSuggestionCommand}" />
-                    <Button Content="다시 묻지 않기" Command="{Binding DisableClipboardDetectionCommand}" Margin="0" />
+                    <Button Content="{l:Tr Banner_Paste}" Command="{Binding AcceptClipboardSuggestionCommand}" FontWeight="SemiBold" />
+                    <Button Content="{l:Tr Banner_Ignore}" Command="{Binding DismissClipboardSuggestionCommand}" />
+                    <Button Content="{l:Tr Banner_Never}" Command="{Binding DisableClipboardDetectionCommand}" Margin="0" />
                 </StackPanel>
                 <TextBlock Text="{Binding ClipboardSuggestionInfo}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </DockPanel>
@@ -130,8 +127,8 @@
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Column="0" Margin="8,6" Foreground="{DynamicResource Brush.SubtleText}">
-                <Run Text="입력 (원본 JSON)" />
-                <Run Text="  — 파일을 끌어다 놓아도 됩니다" Foreground="{DynamicResource Brush.FaintText}" />
+                <Run Text="{l:Tr Input_Header}" />
+                <Run Text="{l:Tr Input_Hint}" Foreground="{DynamicResource Brush.FaintText}" />
             </TextBlock>
             <DockPanel Grid.Column="2" Margin="8,6">
                 <TextBlock DockPanel.Dock="Right">
@@ -144,11 +141,11 @@
                             </Style.Triggers>
                         </Style>
                     </TextBlock.Style>
-                    <Hyperlink Click="FoldAll_Click">모두 접기</Hyperlink>
+                    <Hyperlink Click="FoldAll_Click"><Run Text="{l:Tr FoldAll}" /></Hyperlink>
                     <Run Text="  ·  " Foreground="{DynamicResource Brush.FaintText}" />
-                    <Hyperlink Click="UnfoldAll_Click">모두 펼치기</Hyperlink>
+                    <Hyperlink Click="UnfoldAll_Click"><Run Text="{l:Tr UnfoldAll}" /></Hyperlink>
                 </TextBlock>
-                <TextBlock Text="출력 (정렬 결과)" Foreground="{DynamicResource Brush.SubtleText}" />
+                <TextBlock Text="{l:Tr Output_Header}" Foreground="{DynamicResource Brush.SubtleText}" />
             </DockPanel>
 
             <avalon:TextEditor x:Name="InputEditor" Grid.Row="1" Grid.Column="0"
@@ -164,7 +161,7 @@
 
             <TabControl x:Name="OutputTabs" Grid.Row="1" Grid.Column="2" TabStripPlacement="Bottom"
                         Padding="0" BorderThickness="0,1,0,0" SelectionChanged="OutputTabs_SelectionChanged">
-            <TabItem Header="텍스트">
+            <TabItem Header="{l:Tr Tab_Text}">
             <avalon:TextEditor x:Name="OutputEditor"
                                FontFamily="Consolas, Malgun Gothic" FontSize="14"
                                ShowLineNumbers="True" IsReadOnly="True" WordWrap="False"
@@ -173,29 +170,29 @@
                                LineNumbersForeground="{DynamicResource Brush.LineNumbers}" BorderThickness="0">
                 <avalon:TextEditor.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Header="선택 영역 복사" Command="ApplicationCommands.Copy" InputGestureText="Ctrl+C" />
-                        <MenuItem Header="전체 복사" Command="{Binding CopyCommand}" InputGestureText="Ctrl+Shift+C" />
-                        <MenuItem Header="압축해서 복사" Command="{Binding CopyMinifiedCommand}" InputGestureText="Ctrl+Alt+C" />
+                        <MenuItem Header="{l:Tr Menu_CopySelection}" Command="ApplicationCommands.Copy" InputGestureText="Ctrl+C" />
+                        <MenuItem Header="{l:Tr Menu_CopyAll}" Command="{Binding CopyCommand}" InputGestureText="Ctrl+Shift+C" />
+                        <MenuItem Header="{l:Tr Menu_CopyMinified}" Command="{Binding CopyMinifiedCommand}" InputGestureText="Ctrl+Alt+C" />
                         <Separator />
-                        <MenuItem Header="모두 접기" Click="FoldAll_Click" />
-                        <MenuItem Header="모두 펼치기" Click="UnfoldAll_Click" />
+                        <MenuItem Header="{l:Tr FoldAll}" Click="FoldAll_Click" />
+                        <MenuItem Header="{l:Tr UnfoldAll}" Click="UnfoldAll_Click" />
                     </ContextMenu>
                 </avalon:TextEditor.ContextMenu>
             </avalon:TextEditor>
             </TabItem>
 
-            <TabItem Header="트리">
+            <TabItem Header="{l:Tr Tab_Tree}">
                 <DockPanel>
                     <!-- 선택한 노드의 경로와 복사 버튼 -->
                     <Border DockPanel.Dock="Bottom" Padding="6" Background="{DynamicResource Brush.Bar}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                <Button Content="경로 복사" Command="{Binding CopyTreePathCommand}" />
-                                <Button Content="값 복사" Command="{Binding CopyTreeValueCommand}" Margin="0" />
+                                <Button Content="{l:Tr CopyPath}" Command="{Binding CopyTreePathCommand}" />
+                                <Button Content="{l:Tr CopyValue}" Command="{Binding CopyTreeValueCommand}" Margin="0" />
                             </StackPanel>
                             <TextBox Text="{Binding SelectedTreeNode.Path, Mode=OneWay}" IsReadOnly="True" BorderThickness="0"
                                      Background="Transparent" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" FontFamily="Consolas, Malgun Gothic"
-                                     ToolTip="선택한 노드의 경로" />
+                                     ToolTip="{l:Tr Path_Tip}" />
                         </DockPanel>
                     </Border>
 
@@ -240,8 +237,8 @@
                         </TreeView.ItemTemplate>
                         <TreeView.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Header="경로 복사" Command="{Binding CopyTreePathCommand}" />
-                                <MenuItem Header="값 복사" Command="{Binding CopyTreeValueCommand}" />
+                                <MenuItem Header="{l:Tr CopyPath}" Command="{Binding CopyTreePathCommand}" />
+                                <MenuItem Header="{l:Tr CopyValue}" Command="{Binding CopyTreeValueCommand}" />
                             </ContextMenu>
                         </TreeView.ContextMenu>
                     </TreeView>

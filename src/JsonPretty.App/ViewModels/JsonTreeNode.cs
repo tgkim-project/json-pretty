@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
+using JsonPretty.App.Localization;
 using JsonPretty.Core;
 
 namespace JsonPretty.App.ViewModels;
@@ -38,8 +39,8 @@ public sealed partial class JsonTreeNode : ObservableObject
         };
         Preview = Kind switch
         {
-            NodeKind.Object => $"{{ {element.EnumerateObject().Count()}개 속성 }}",
-            NodeKind.Array => $"[ {element.GetArrayLength()}개 항목 ]",
+            NodeKind.Object => Loc.F("Tree_Object", element.EnumerateObject().Count()),
+            NodeKind.Array => Loc.F("Tree_Array", element.GetArrayLength()),
             NodeKind.String => Truncate("\"" + element.GetString() + "\""),
             _ => element.GetRawText(),
         };

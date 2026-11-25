@@ -20,7 +20,7 @@ public class LenientJsonTests
         var r = Formatter.Minify(input, Lf);
         Assert.True(r.Success, r.Error?.Message);
         Assert.Equal(expected, r.Output);
-        Assert.Contains("보정", r.Notice);
+        Assert.True(r.Notices.HasFlag(FormatNotices.LenientFixed));
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public class LenientJsonTests
     public void StrictInput_HasNoNotice()
     {
         var r = Formatter.Minify("{\"a\":1}", Lf);
-        Assert.Null(r.Notice);
+        Assert.Equal(FormatNotices.None, r.Notices);
     }
 
     [Fact]
@@ -68,7 +68,8 @@ public class LenientJsonTests
         var r = Formatter.Minify("\"{\\\"a\\\":[1,2]}\"", Lf);
         Assert.True(r.Success);
         Assert.Equal("{\"a\":[1,2]}", r.Output);
-        Assert.Contains("풀었음", r.Notice);
+        Assert.True(r.Notices.HasFlag(FormatNotices.Unwrapped));
+        Assert.Equal(1, r.UnwrapCount);
     }
 
     [Fact]
@@ -78,6 +79,7 @@ public class LenientJsonTests
         var r = Formatter.Minify("\"\\\"{\\\\\\\"a\\\\\\\":1}\\\"\"", Lf);
         Assert.True(r.Success, r.Error?.Message);
         Assert.Equal("{\"a\":1}", r.Output);
+        Assert.Equal(2, r.UnwrapCount);
     }
 
     [Fact]
@@ -85,7 +87,7 @@ public class LenientJsonTests
     {
         var r = Formatter.Minify("\"{not json}\"", Lf);
         Assert.Equal("\"{not json}\"", r.Output);
-        Assert.Null(r.Notice);
+        Assert.Equal(FormatNotices.None, r.Notices);
     }
 
     [Fact]

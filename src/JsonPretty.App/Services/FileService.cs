@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using JsonPretty.App.Localization;
 using Microsoft.Win32;
 
 namespace JsonPretty.App.Services;
@@ -9,14 +10,13 @@ public static class FileService
     /// <summary>이보다 큰 파일은 에디터가 감당하기 어려우므로 열지 않는다.</summary>
     public const long MaxFileBytes = 100L * 1024 * 1024;
 
-    private const string Filter = "JSON 파일 (*.json)|*.json|텍스트 파일 (*.txt)|*.txt|모든 파일 (*.*)|*.*";
 
     public static string? PickOpenPath(string? initialDirectory)
     {
         var dialog = new OpenFileDialog
         {
-            Title = "JSON 파일 열기",
-            Filter = Filter,
+            Title = Loc.T("Dlg_OpenTitle"),
+            Filter = Loc.T("Dlg_Filter"),
             InitialDirectory = ExistingDirectoryOrNull(initialDirectory),
         };
         return dialog.ShowDialog() == true ? dialog.FileName : null;
@@ -26,8 +26,8 @@ public static class FileService
     {
         var dialog = new SaveFileDialog
         {
-            Title = "정렬 결과 저장",
-            Filter = Filter,
+            Title = Loc.T("Dlg_SaveTitle"),
+            Filter = Loc.T("Dlg_Filter"),
             DefaultExt = ".json",
             AddExtension = true,
             OverwritePrompt = true,
@@ -42,7 +42,7 @@ public static class FileService
     {
         var info = new FileInfo(path);
         if (info.Length > MaxFileBytes)
-            throw new IOException($"파일이 너무 큽니다 ({info.Length / (1024 * 1024)} MB). {MaxFileBytes / (1024 * 1024)} MB 이하만 열 수 있습니다.");
+            throw new IOException(Loc.F("Err_FileTooLarge", info.Length / (1024 * 1024), MaxFileBytes / (1024 * 1024)));
         return File.ReadAllText(path, Encoding.UTF8);
     }
 
