@@ -1,5 +1,11 @@
 # <img src="src/JsonPretty.App/Assets/app-256.png" width="40" align="top" /> JSON Pretty
 
+[![Release](https://img.shields.io/github/v/release/tgkim-project/json-pretty?label=release)](https://github.com/tgkim-project/json-pretty/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/tgkim-project/json-pretty/total?label=downloads)](https://github.com/tgkim-project/json-pretty/releases)
+![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet&logoColor=white)
+![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6)
+[![Last commit](https://img.shields.io/github/last-commit/tgkim-project/json-pretty)](https://github.com/tgkim-project/json-pretty/commits/main)
+
 정돈되지 않은 JSON을 정렬해서 보여주고 복사할 수 있는 Windows 프로그램 (WPF / .NET 9). 설계는 [DESIGN.md](DESIGN.md) 참고.
 
 ## 바로 실행
